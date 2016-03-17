@@ -24,10 +24,8 @@ package com.gosimple.jpgagent;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.OptionHandlerFilter;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.PreparedStatement;

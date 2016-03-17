@@ -36,12 +36,13 @@ public enum ThreadFactory
     ThreadFactory()
     {
         generalThreadPool = new CancellableExecutor(
-                5,
-                20,
+                50,
+                50,
                 30L,
                 SECONDS,
                 new LinkedBlockingQueue<>(),
                 new PriorityThreadFactory("GeneralPool", Thread.NORM_PRIORITY));
+        generalThreadPool.allowCoreThreadTimeOut(true);
     }
 
 
@@ -147,7 +148,6 @@ public enum ThreadFactory
             }
         }
     }
-
 
     private class PriorityThreadFactory implements java.util.concurrent.ThreadFactory
     {
