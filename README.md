@@ -6,8 +6,13 @@ The reason for writing a pgAgent compatible job scheduler is to be able to utili
 for pgAgent in the pgAdmin UI, minimizing the pain of switching for existing pgAgent users (uses the same database schema),
 and provide a more stable and feature rich implementation of the agent.
 
+
+## Requires:
+jpgAgent requires Java 8+ and PostgreSQL 9.2+
+
 ## Additional features:
 Kill a running job:
+
     NOTIFY jpgagent_kill_job, 'job_id_here';
 
 ## Config options:
@@ -20,4 +25,5 @@ Kill a running job:
      -u VAL   : Database user.
 
 Example run:
+
         java -server -jar /path/to/jar/jpgagent-1.0-SNAPSHOT-jar-with-dependencies.jar -h 127.0.0.1 -u test -p password -d postgres
