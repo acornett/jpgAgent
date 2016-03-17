@@ -24,6 +24,7 @@ package com.gosimple.jpgagent;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.OptionHandlerFilter;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 
@@ -33,10 +34,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Future;
 
 public class JPGAgent
@@ -359,6 +357,7 @@ public class JPGAgent
         catch (final CmdLineException e)
         {
             Config.INSTANCE.logger.error(e.getMessage());
+            parser.printUsage(System.out);
             return false;
         }
 

@@ -50,6 +50,4 @@ public enum Config
     protected long job_poll_interval = 10000;
     @Option(name = "-r", required = false, usage = "Connection retry interval (ms).")
     protected long connection_retry_interval = 30000;
-    @Option(name = "-l", required = false, usage = "Log level: (1) error (2) info (3) debug.")
-    protected int log_level = 2;
 }
