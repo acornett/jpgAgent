@@ -61,4 +61,4 @@ Definitions:
 
 Example run:
 
-        java -server -jar /path/to/jar/jpgagent-1.0-SNAPSHOT-jar-with-dependencies.jar -h 127.0.0.1 -u test -p password -d postgres
+        java -server -jar /path/to/jar/jpgAgent-1.0-SNAPSHOT-jar-with-dependencies.jar -h 127.0.0.1 -u test -p password -d postgres
