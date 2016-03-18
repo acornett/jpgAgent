@@ -26,6 +26,7 @@ import org.apache.commons.lang3.SystemUtils;
 
 import java.io.*;
 import java.sql.*;
+import java.util.Map;
 
 public class JobStep implements CancellableRunnable
 {
@@ -47,6 +48,15 @@ public class JobStep implements CancellableRunnable
 
     private Statement running_statement;
     private Process running_process;
+    private Long start_time;
+
+    /*
+    * Annotation set parameters.
+     */
+    // If true, will run in parallel with previous step.
+    private Boolean run_in_parallel = false;
+    // Timeout setting to abort job if running longer than this value.
+    private Long job_step_timeout = null;
 
     public JobStep(final int job_log_id, final int job_id, final int step_id, final String step_name, final String step_description, final StepType step_type, final String code, final String connection_string, final String database_name, final OnError on_error)
     {
@@ -69,15 +79,36 @@ public class JobStep implements CancellableRunnable
         {
             os_type = OSType.NIX;
         }
+
+        /*
+         Assign any values from annotations.
+          */
+        try
+        {
+            Map<String, String> annotations = AnnotationUtil.parseAnnotations(step_description);
+            if(annotations.containsKey(JobStepAnnotations.RUN_IN_PARALLEL.name()))
+            {
+                run_in_parallel = AnnotationUtil.parseValue(JobStepAnnotations.RUN_IN_PARALLEL, annotations.get(JobStepAnnotations.RUN_IN_PARALLEL.name()), Boolean.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.JOB_STEP_TIMEOUT.name()))
+            {
+                job_step_timeout = AnnotationUtil.parseValue(JobStepAnnotations.JOB_STEP_TIMEOUT, annotations.get(JobStepAnnotations.JOB_STEP_TIMEOUT.name()), Long.class);
+            }
+        }
+        catch (Exception e)
+        {
+            Config.INSTANCE.logger.error("An issue with the annotations on job has stopped them from being processed.");
+        }
         Config.INSTANCE.logger.debug("JobStep instantiation complete.");
     }
 
     public void run()
     {
+        this.start_time = System.currentTimeMillis();
         final String log_sql =
                 "INSERT INTO pgagent.pga_jobsteplog(jsljlgid, jsljstid, jslstatus) " +
-                        "SELECT ?, ?, ? " +
-                        "RETURNING jslid;";
+                "SELECT ?, ?, ? " +
+                "RETURNING jslid;";
         try (final PreparedStatement log_statement = Database.INSTANCE.getMainConnection().prepareStatement(log_sql))
         {
             log_statement.setInt(1, this.job_log_id);
@@ -238,6 +269,22 @@ public class JobStep implements CancellableRunnable
     }
 
     /**
+     * Returns if the job is timed out or not.
+     * @return
+     */
+    public boolean isTimedOut()
+    {
+        if(null != job_step_timeout && null != start_time)
+        {
+            return System.currentTimeMillis() - start_time > job_step_timeout;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    /**
      * Should stop any long running process the thread was doing to exit gracefully as quickly as possible.
      */
     @Override
@@ -286,6 +333,15 @@ public class JobStep implements CancellableRunnable
     public OnError getOnError()
     {
         return on_error;
+    }
+
+    /**
+     * Returns if the job can run in parallel with the previous step.
+     * @return
+     */
+    public Boolean canRunInParallel()
+    {
+        return this.run_in_parallel;
     }
 
     protected enum StepType
@@ -386,5 +442,24 @@ public class JobStep implements CancellableRunnable
     {
         WIN,
         NIX;
+    }
+
+    public enum JobStepAnnotations implements AnnotationDefinition
+    {
+        RUN_IN_PARALLEL(Boolean.class),
+        JOB_STEP_TIMEOUT(Long.class);
+
+        final Class<?> annotation_value_type;
+
+        private JobStepAnnotations(final Class annotation_value_type)
+        {
+            this.annotation_value_type = annotation_value_type;
+        }
+
+        @Override
+        public Class<?> getAnnotationValueType()
+        {
+            return this.annotation_value_type;
+        }
     }
 }

@@ -29,31 +29,78 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class Job implements CancellableRunnable
 {
     private final int job_id;
     private int job_log_id;
+    private String job_name;
+    private String job_comment;
     private JobStatus job_status;
     final List<JobStep> job_step_list = new ArrayList<>();
-    private static final Map<JobStep, Future> future_map = new HashMap<>();
+    private final Map<JobStep, Future> future_map = new HashMap<>();
+    private Long start_time;
+    /*
+     * Annotation settings
+     */
+    // Timeout setting to abort job if running longer than this value.
+    private Long job_timeout = null;
 
     public Job(final int job_id)
     {
         this.job_id = job_id;
         Config.INSTANCE.logger.debug("Instantiating Job begin.");
+        final String job_sql =
+                "SELECT jobname " +
+                ", jobdesc " +
+                "FROM pgagent.pga_job " +
+                "WHERE true " +
+                "AND jobid=?;";
+        try (final PreparedStatement statement = Database.INSTANCE.getMainConnection().prepareStatement(job_sql))
+        {
+            statement.setInt(1, job_id);
+            try (final ResultSet resultSet = statement.executeQuery())
+            {
+                if (resultSet.next())
+                {
+                    job_name = resultSet.getString("jobname");
+                    job_comment = resultSet.getString("jobdesc");
+                }
+            }
+        }
+        catch (final SQLException e)
+        {
+            Config.INSTANCE.logger.error("An error occurred getting job info.");
+            Config.INSTANCE.logger.error(e.getMessage());
+        }
+
+        /*
+         Assign any values from annotations.
+          */
+        try
+        {
+            Map<String, String> annotations = AnnotationUtil.parseAnnotations(job_comment);
+            if(annotations.containsKey(JobAnnotations.JOB_TIMEOUT.name()))
+            {
+                job_timeout = AnnotationUtil.parseValue(JobAnnotations.JOB_TIMEOUT, annotations.get(JobAnnotations.JOB_TIMEOUT.name()), Long.class);
+            }
+        }
+        catch (Exception e)
+        {
+            Config.INSTANCE.logger.error("An issue with the annotations on job has stopped them from being processed.");
+        }
 
         final String log_sql =
                 "INSERT INTO pgagent.pga_joblog(jlgjobid, jlgstatus) " +
-                        "VALUES (?, 'r') " +
-                        "RETURNING jlgid;";
+                "VALUES (?, ?) " +
+                "RETURNING jlgid;";
         Config.INSTANCE.logger.debug("Inserting logging and marking job as being worked on.");
         try (final PreparedStatement log_statement = Database.INSTANCE.getMainConnection().prepareStatement(log_sql))
         {
 
             log_statement.setInt(1, this.job_id);
+            log_statement.setString(2, JobStatus.RUNNING.getDbRepresentation());
             try (final ResultSet resultSet = log_statement.executeQuery())
             {
                 while (resultSet.next())
@@ -118,50 +165,56 @@ public class Job implements CancellableRunnable
 
     public void run()
     {
-        Config.INSTANCE.logger.info("Job id: {} started.", job_id);
-        boolean failed_step = false;
         try
         {
-            for (JobStep job_step : job_step_list)
+            Config.INSTANCE.logger.info("Job id: {} started.", job_id);
+            this.start_time = System.currentTimeMillis();
+            boolean failed_step = false;
+            try
             {
-                future_map.put(job_step, ThreadFactory.INSTANCE.submitTask(job_step));
-                // Block until step is done so we can execute in-order.
-                try
+                for (JobStep job_step : job_step_list)
                 {
-                    future_map.get(job_step).get();
+                    if (!job_step.canRunInParallel())
+                    {
+                        // Block until all steps submitted before are done.
+                        waitOnRunningJobSteps();
+                    }
+                    // Submit task.
+                    future_map.put(job_step, ThreadFactory.INSTANCE.submitTask(job_step));
                 }
-                catch (ExecutionException e)
-                {
-                    Config.INSTANCE.logger.error(e.getMessage());
-                }
+                // Block until all JobSteps are done.
+                waitOnRunningJobSteps();
 
+                for (JobStep job_step : job_step_list)
+                {
+                    if (job_step.getStepStatus().equals(JobStep.StepStatus.FAIL)
+                            && job_step.getOnError().equals(JobStep.OnError.FAIL))
+                    {
+                        failed_step = true;
+                    }
+                }
             }
-
-
-            for (JobStep job_step : job_step_list)
+            catch (InterruptedException e)
             {
-                if (job_step.getStepStatus().equals(JobStep.StepStatus.FAIL)
-                        && job_step.getOnError().equals(JobStep.OnError.FAIL))
-                {
-                    failed_step = true;
-                }
+                job_status = JobStatus.ABORTED;
+            }
+            if (job_status == null && job_step_list.isEmpty())
+            {
+                job_status = JobStatus.IGNORE;
+            }
+            else if (job_status == null && failed_step)
+            {
+                job_status = JobStatus.FAIL;
+            }
+            else if (job_status == null)
+            {
+                job_status = JobStatus.SUCCEED;
             }
         }
-        catch (InterruptedException e)
-        {
-            job_status = JobStatus.ABORTED;
-        }
-        if (job_status == null && job_step_list.isEmpty())
-        {
-            job_status = JobStatus.IGNORE;
-        }
-        else if (job_status == null && failed_step)
+        catch (Exception e)
         {
             job_status = JobStatus.FAIL;
-        }
-        else if (job_status == null)
-        {
-            job_status = JobStatus.SUCCEED;
+            Config.INSTANCE.logger.error(e.getMessage());
         }
 
         final String update_log_sql =
@@ -185,6 +238,74 @@ public class Job implements CancellableRunnable
             Config.INSTANCE.logger.error(e.getMessage());
         }
         Config.INSTANCE.logger.info("Job id: {} complete.", job_id);
+    }
+
+    /**
+     * Waits on job steps that are running and responds to timeouts.
+     * @throws InterruptedException
+     */
+    private void waitOnRunningJobSteps() throws InterruptedException
+    {
+        while(submittedJobStepsRunning())
+        {
+            submittedJobStepTimeout();
+            if(isTimedOut())
+            {
+                cancelTask();
+                Thread.currentThread().interrupt();
+            }
+            Thread.sleep(200);
+        }
+    }
+
+    /**
+     * Check if the job steps already submitted to run are complete.
+     * @return
+     */
+    private boolean submittedJobStepsRunning()
+    {
+        boolean jobsteps_running = false;
+        for (Future future : future_map.values())
+        {
+            if (!future.isDone())
+            {
+                jobsteps_running = true;
+                break;
+            }
+        }
+        return  jobsteps_running;
+    }
+
+    /**
+     * Cancels JobSteps which have timed out prior to finishing.
+     * @return
+     */
+    private void submittedJobStepTimeout()
+    {
+        for (JobStep job_step : future_map.keySet())
+        {
+            final Future future = future_map.get(job_step);
+            if(job_step.isTimedOut() && !future.isDone())
+            {
+                future.cancel(true);
+            }
+        }
+    }
+
+    /**
+     * Returns if the job is timed out or not.
+     * @return
+     */
+    public boolean isTimedOut()
+    {
+        if(null != job_timeout && null != start_time)
+        {
+            return System.currentTimeMillis() - start_time > job_timeout;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     /**
@@ -232,6 +353,24 @@ public class Job implements CancellableRunnable
         public String getDbRepresentation()
         {
             return db_representation;
+        }
+    }
+
+    public enum JobAnnotations implements AnnotationDefinition
+    {
+        JOB_TIMEOUT(Long.class);
+
+        final Class<?> annotation_value_type;
+
+        private JobAnnotations(final Class annotation_value_type)
+        {
+            this.annotation_value_type = annotation_value_type;
+        }
+
+        @Override
+        public Class<?> getAnnotationValueType()
+        {
+            return this.annotation_value_type;
         }
     }
 }
