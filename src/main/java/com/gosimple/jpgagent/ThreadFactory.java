@@ -38,7 +38,7 @@ public enum ThreadFactory
         generalThreadPool = new CancellableExecutor(
                 50,
                 50,
-                30L,
+                60L,
                 SECONDS,
                 new LinkedBlockingQueue<>(),
                 new PriorityThreadFactory("GeneralPool", Thread.NORM_PRIORITY));
