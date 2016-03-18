@@ -78,10 +78,8 @@ public enum Database
             main_connection = Database.INSTANCE.getConnection(Config.INSTANCE.db_database);
 
             String pid_sql = "SELECT pg_backend_pid();";
-            String listen_sql = "LISTEN jpgagent_kill_job;";
             try (Statement statement = main_connection.createStatement())
             {
-                statement.execute(listen_sql);
                 try (ResultSet result = statement.executeQuery(pid_sql))
                 {
                     while (result.next())
