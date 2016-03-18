@@ -271,20 +271,6 @@ public class JPGAgent
             if (job_future_map.get(job_id).isDone())
             {
                 job_ids_to_remove.add(job_id);
-
-                final String update_job_sql =
-                        "UPDATE pgagent.pga_job SET jobagentid=NULL, jobnextrun=NULL " +
-                                "WHERE jobid = ?;";
-
-                try (final PreparedStatement update_job_statement = Database.INSTANCE.getMainConnection().prepareStatement(update_job_sql))
-                {
-                    update_job_statement.setInt(1, job_id);
-                    update_job_statement.execute();
-                }
-                catch (SQLException e)
-                {
-                    Config.INSTANCE.logger.error(e.getMessage());
-                }
             }
         }
 
