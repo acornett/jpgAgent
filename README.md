@@ -11,9 +11,44 @@ and provide a more stable and feature rich implementation of the agent.
 jpgAgent requires Java 8+ and PostgreSQL 9.2+
 
 ## Additional features:
-Kill a running job:
+### Kill a running job:
+We support killing a job through Listen/Notify channels in Postgres.  It was implemented this way to be the easiest
+to use without extending the UI to support it.
 
     NOTIFY jpgagent_kill_job, 'job_id_here';
+
+### Annotations:
+Annotations can be added at the job, and job step level.  There is currently one supported at the job level, and 
+two at the job step level.
+
+Annotations are added in the job comment field, or job step description field, must be on their own line, and in the correct format.
+
+Annotations that take a time measurement support different suffixes for the value (ms, s, m, h).
+
+#### Job:
+
+    @JOB_TIMEOUT=30 s;
+
+Definitions:
+    
+    @JOB_TIMEOUT If the job takes longer than specified to complete, the job will abort, and abort all 
+    steps that have not completed yet. The steps that did complete are not affected.
+    
+#### Job Step:
+    
+    @JOB_STEP_TIMEOUT=5 s;
+    @RUN_IN_PARALLEL=true;
+    
+Definitions:
+
+    @RUN_IN_PARALLEL This annotation allows the step it's defined on to run in parallel with the 
+    previous step (regardless of the annotations on the previous step).  You can set up some somewhat intricate job 
+    flows with this.
+    
+    @JOB_STEP_TIMEOUT If the step takes longer than specified to complete, the step will abort leaving
+    the rest of the job to finish normally.
+   
+    
 
 ## Config options:
      --port N : Database host port. (default: 5432)
