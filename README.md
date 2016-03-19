@@ -58,6 +58,7 @@ Definitions:
      -r N     : Connection retry interval (ms). (default: 30000)
      -t N     : Job poll interval (ms). (default: 10000)
      -u VAL   : Database user.
+     -w N     : Size of the thread pool to execute tasks.  Each job and job step can take up to a thread in the pool at once.
 
 Example run:
 

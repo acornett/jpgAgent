@@ -44,10 +44,12 @@ public enum Config
     protected String db_user;
     @Option(name = "-p", required = true, usage = "Database password.")
     protected String db_password;
-    @Option(name = "-d", required = true, usage = "jPGAgent database.")
+    @Option(name = "-d", required = true, usage = "jpgAgent database.")
     protected String db_database;
     @Option(name = "-t", required = false, usage = "Job poll interval (ms).")
     protected long job_poll_interval = 10000;
     @Option(name = "-r", required = false, usage = "Connection retry interval (ms).")
     protected long connection_retry_interval = 30000;
+    @Option(name = "-w", required = false, usage = "Size of the thread pool to execute tasks.  Each job and job step can take up to a thread in the pool at once.")
+    protected int thread_pool_size = 40;
 }

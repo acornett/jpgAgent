@@ -35,14 +35,15 @@ public enum ThreadFactory
 
     ThreadFactory()
     {
+
+        Executors.newFixedThreadPool(Config.INSTANCE.thread_pool_size);
         generalThreadPool = new CancellableExecutor(
-                50,
-                50,
+                Config.INSTANCE.thread_pool_size,
+                Config.INSTANCE.thread_pool_size,
                 300L,
                 SECONDS,
                 new LinkedBlockingQueue<>(),
                 new PriorityThreadFactory("GeneralPool", Thread.NORM_PRIORITY));
-        generalThreadPool.allowCoreThreadTimeOut(true);
     }
 
 
@@ -177,20 +178,6 @@ public enum ThreadFactory
         public ThreadGroup getGroup()
         {
             return group;
-        }
-    }
-
-    public void shutdown()
-    {
-        try
-        {
-            generalThreadPool.awaitTermination(1, SECONDS);
-            generalThreadPool.shutdown();
-            Config.INSTANCE.logger.debug("All ThreadPools are now stopped.");
-        }
-        catch (InterruptedException e)
-        {
-            e.printStackTrace();
         }
     }
 }
