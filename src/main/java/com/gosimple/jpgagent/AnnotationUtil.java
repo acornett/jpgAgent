@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
  */
 public class AnnotationUtil
 {
-    private static final Pattern annotation_pattern = Pattern.compile("^@([A-Z_]+)=([a-z 0-9]+);$", Pattern.MULTILINE);
+    private static final Pattern annotation_pattern = Pattern.compile("^@([A-Z_]+)=(.+);$", Pattern.MULTILINE);
     private static final String value_regex = "^([0-9]*)+ ([a-z]*)+$";
     /**
      * Parses annotations that match a pattern from an incoming String.
