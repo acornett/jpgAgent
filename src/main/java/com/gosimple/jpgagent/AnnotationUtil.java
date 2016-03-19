@@ -42,12 +42,12 @@ public class AnnotationUtil
      */
     public static Map<String, String> parseAnnotations(final String string)
     {
+        final Map<String, String> annotations = new HashMap<>();
         if (string == null)
         {
-            throw new NullPointerException();
+            return annotations;
         }
 
-        final Map<String, String> annotations = new HashMap<>();
         final Matcher matcher = annotation_pattern.matcher(string);
 
         while(matcher.find())
@@ -60,6 +60,8 @@ public class AnnotationUtil
 
     /**
      * Parse the value and return it.
+     *
+     * Returns null if unable to parse or cast to the correct type.
      * @param annotation
      * @param value
      * @return
@@ -74,47 +76,54 @@ public class AnnotationUtil
 
         final T return_value;
 
-        if (Long.class.equals(type))
+        try
         {
-            Long long_value;
-            if(value.matches(value_regex))
+            if (Long.class.equals(type))
             {
-                final String[] vals = value.split(" ");
-                long_value = Long.valueOf(vals[0]) * AnnotationUtil.getMultiplier(vals[1]);
+                Long long_value;
+                if (value.matches(value_regex))
+                {
+                    final String[] vals = value.split(" ");
+                    long_value = Long.valueOf(vals[0]) * AnnotationUtil.getMultiplier(vals[1]);
+                }
+                else
+                {
+                    long_value = Long.valueOf(value);
+                }
+
+                return_value = (T) long_value;
+            }
+            else if (Integer.class.equals(type))
+            {
+                Integer integer_value;
+                if (value.matches(value_regex))
+                {
+                    final String[] vals = value.split(" ");
+                    integer_value = Integer.valueOf(vals[0]) * AnnotationUtil.getMultiplier(vals[1]);
+                }
+                else
+                {
+                    integer_value = Integer.valueOf(value);
+                }
+
+                return_value = (T) integer_value;
+            }
+            else if (Boolean.class.equals(type))
+            {
+                return_value = (T) Boolean.valueOf(value);
+            }
+            else if (String.class.equals(type))
+            {
+                return_value = (T) value;
             }
             else
             {
-                long_value = Long.valueOf(value);
+                throw new IllegalArgumentException();
             }
-
-            return_value = (T) long_value;
         }
-        else if (Integer.class.equals(type))
+        catch (Exception e)
         {
-            Integer integer_value;
-            if(value.matches(value_regex))
-            {
-                final String[] vals = value.split(" ");
-                integer_value = Integer.valueOf(vals[0]) * AnnotationUtil.getMultiplier(vals[1]);
-            }
-            else
-            {
-                integer_value = Integer.valueOf(value);
-            }
-
-            return_value = (T) integer_value;
-        }
-        else if (Boolean.class.equals(type))
-        {
-            return_value = (T) Boolean.valueOf(value);
-        }
-        else if (String.class.equals(type))
-        {
-            return_value = (T) value;
-        }
-        else
-        {
-            throw new IllegalArgumentException();
+            return null;
         }
         return return_value;
     }
