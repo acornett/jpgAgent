@@ -67,7 +67,7 @@ public class AnnotationUtil
      * @return
      * @throws IllegalArgumentException
      */
-    public static <T> T parseValue(final AnnotationDefinition annotation, final String value, final Class<T> type) throws IllegalArgumentException
+    public static <T> T parseValue(final AnnotationDefinition annotation, final String value, final Class<T> type)
     {
         if (!annotation.getAnnotationValueType().equals(type))
         {
@@ -133,24 +133,31 @@ public class AnnotationUtil
      * @param arg
      * @return
      */
-    private static int getMultiplier(String arg)
+    private static int getMultiplier(final String arg)
     {
         switch (arg)
         {
+            case "MS":
             case "ms":
             {
                 return 1;
             }
+            case "SEC":
+            case "S":
             case "sec":
             case "s":
             {
                 return 1000;
             }
+            case "MIN":
+            case "M":
             case "min":
             case "m":
             {
                 return 1000 * 60;
             }
+            case "HR":
+            case "H":
             case "hr":
             case "h":
             {
