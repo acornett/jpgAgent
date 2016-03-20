@@ -26,18 +26,22 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 
 public class JPGAgent
 {
     private static final Map<Integer, Future> job_future_map = new HashMap<>();
+    private static boolean run_cleanup = true;
 
     public static void main(String[] args)
     {
@@ -59,73 +63,27 @@ public class JPGAgent
                     Database.INSTANCE.resetMainConnection();
                 }
 
-                if (!processNotifications())
+                // Process all incoming notifications.
+                processNotifications();
+
+                // Run cleanup of zombie jobs.
+                if(run_cleanup)
                 {
-                    try
-                    {
-                        Thread.sleep(Config.INSTANCE.job_poll_interval);
-                    }
-                    catch (InterruptedException ie)
-                    {
-                        Config.INSTANCE.logger.error(ie.getMessage());
-                    }
-                    continue;
+                    cleanup();
+                    run_cleanup = false;
                 }
 
-                if (!cleanup())
-                {
-                    try
-                    {
-                        Thread.sleep(Config.INSTANCE.job_poll_interval);
-                    }
-                    catch (InterruptedException ie)
-                    {
-                        Config.INSTANCE.logger.error(ie.getMessage());
-                    }
-                    continue;
-                }
+                // Actually run new jobs.
+                runJobs();
 
-                if (!runJobs())
-                {
-                    try
-                    {
-                        Thread.sleep(Config.INSTANCE.job_poll_interval);
-                    }
-                    catch (InterruptedException ie)
-                    {
-                        Config.INSTANCE.logger.error(ie.getMessage());
-                    }
-
-                    continue;
-                }
-
-                try
-                {
-                    Thread.sleep(Config.INSTANCE.job_poll_interval);
-                }
-                catch (InterruptedException ie)
-                {
-                    Config.INSTANCE.logger.error(ie.getMessage());
-                }
-            }
-            catch (final SQLException e)
-            {
-                // If it fails, sleep and try and restart the loop
-                Config.INSTANCE.logger.error("Unable to get database connection.");
-                Config.INSTANCE.logger.error(e.getMessage());
-                try
-                {
-                    Thread.sleep(Config.INSTANCE.connection_retry_interval);
-                }
-                catch (InterruptedException ie)
-                {
-                    Config.INSTANCE.logger.error(ie.getMessage());
-                }
+                // Sleep for the allotted time before starting all over.
+                Thread.sleep(Config.INSTANCE.job_poll_interval);
             }
             catch (final Exception e)
             {
                 // If it fails, sleep and try and restart the loop
                 Config.INSTANCE.logger.error("Connection has been lost.");
+                run_cleanup = true;
                 try
                 {
                     Thread.sleep(Config.INSTANCE.connection_retry_interval);
@@ -143,7 +101,7 @@ public class JPGAgent
      *
      * @return
      */
-    private static boolean processNotifications()
+    private static void processNotifications() throws Exception
     {
         try (final Statement statement = Database.INSTANCE.getListenerConnection().createStatement();
              final ResultSet result_set = statement.executeQuery("SELECT 1;"))
@@ -154,11 +112,11 @@ public class JPGAgent
 
             if (null != notifications)
             {
-                for (int i = 0; i < notifications.length; i++)
+                for (PGNotification notification : notifications)
                 {
-                    if (notifications[i].getName().equals("jpgagent_kill_job"))
+                    if (notification.getName().equals("jpgagent_kill_job"))
                     {
-                        int job_id = Integer.valueOf(notifications[i].getParameter());
+                        int job_id = Integer.valueOf(notification.getParameter());
                         if (job_future_map.containsKey(job_id))
                         {
                             Config.INSTANCE.logger.info("Killing job_id: {}.", job_id);
@@ -175,9 +133,7 @@ public class JPGAgent
         catch (Exception e)
         {
             Config.INSTANCE.logger.error(e.getMessage());
-            return false;
         }
-        return true;
     }
 
     /**
@@ -186,7 +142,7 @@ public class JPGAgent
      *
      * @return
      */
-    private static boolean cleanup()
+    private static void cleanup() throws Exception
     {
         Config.INSTANCE.logger.debug("Running cleanup to clear old data and re-initialize to start processing.");
 
@@ -256,12 +212,6 @@ public class JPGAgent
             register_agent_statement.setString(4, Config.INSTANCE.hostname);
             register_agent_statement.execute();
         }
-        catch (final SQLException e)
-        {
-            Config.INSTANCE.logger.error("Encountered SQL exception.");
-            Config.INSTANCE.logger.error(e.getMessage());
-            return false;
-        }
 
 
         Config.INSTANCE.logger.debug("Cleanup of completed jobs started.");
@@ -281,11 +231,9 @@ public class JPGAgent
         job_ids_to_remove.clear();
 
         Config.INSTANCE.logger.debug("Successfully cleaned up.");
-
-        return true;
     }
 
-    private static boolean runJobs()
+    private static void runJobs() throws Exception
     {
         Config.INSTANCE.logger.debug("Running jobs begin.");
         final String get_job_sql =
@@ -313,19 +261,13 @@ public class JPGAgent
                 }
             }
         }
-        catch (final SQLException e)
-        {
-            Config.INSTANCE.logger.error("Encountered SQL exception.");
-            Config.INSTANCE.logger.error(e.getMessage());
-            return false;
-        }
 
         Config.INSTANCE.logger.debug("Running jobs complete.");
-        return true;
     }
 
     /**
-     * Sets the arguments passed in from command line.  Returns true if successful, false if it encountered an error.
+     * Sets the arguments passed in from command line.
+     * Returns true if successful, false if it encountered an error.
      *
      * @param args
      * @return
