@@ -27,5 +27,5 @@ public interface CancellableRunnable extends Runnable
     /**
      * Should stop any long running process the thread was doing to exit gracefully as quickly as possible.
      */
-    public abstract void cancelTask();
+    void cancelTask();
 }

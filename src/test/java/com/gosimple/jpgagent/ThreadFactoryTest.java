@@ -24,18 +24,12 @@ package com.gosimple.jpgagent;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
-/**
- * Created by Adam Brusselback on 3/19/2016.
- */
 public class ThreadFactoryTest
 {
 

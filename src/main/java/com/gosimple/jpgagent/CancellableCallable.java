@@ -29,5 +29,5 @@ public interface CancellableCallable extends Callable
     /**
      * Should stop any long running process the thread was doing to exit gracefully as quickly as possible.
      */
-    public void cancelTask();
+    void cancelTask();
 }

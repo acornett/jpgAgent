@@ -206,7 +206,7 @@ public class JobStep implements CancellableRunnable
 
                     final BufferedReader buffered_reader = new BufferedReader(new InputStreamReader(this.running_process.getInputStream()));
                     final StringBuilder string_builder = new StringBuilder();
-                    String line = null;
+                    String line;
                     while ((line = buffered_reader.readLine()) != null)
                     {
                         string_builder.append(line);

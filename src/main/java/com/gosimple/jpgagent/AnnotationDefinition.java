@@ -24,5 +24,5 @@ package com.gosimple.jpgagent;
 
 public interface AnnotationDefinition
 {
-    public Class<?> getAnnotationValueType();
+    Class<?> getAnnotationValueType();
 }

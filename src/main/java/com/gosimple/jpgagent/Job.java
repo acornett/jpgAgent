@@ -278,7 +278,6 @@ public class Job implements CancellableRunnable
 
     /**
      * Cancels JobSteps which have timed out prior to finishing.
-     * @return
      */
     private void submittedJobStepTimeout()
     {
