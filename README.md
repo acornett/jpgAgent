@@ -61,7 +61,7 @@ Definitions:
      -u String      : Database user.
      -w Integer     : Size of the thread pool to execute tasks.  Each job and job step can take up to a thread in the pool at once. (default: 40)
      
- ### Arguments file:
+### Arguments file:
 You can create a file which contains your arguments, and pass that into the program instead.  This will protect the password from showing up in logs.
 The file can be created anywhere on your filesystem, and must contain the arguments in this format:
 
