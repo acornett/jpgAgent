@@ -36,20 +36,22 @@ public enum Config
     // Host name for the system running jpgAgent.
     protected String hostname;
 
-    @Option(name = "-h", required = true, usage = "Database host address.")
+    @Option(name = "--help", help = true, required = false, usage = "Help")
+    protected boolean help = false;
+    @Option(name = "-h", required = true, usage = "Database host address.", metaVar = "String")
     protected String db_host;
-    @Option(name = "--port", required = false, usage = "Database host port.")
+    @Option(name = "--port", required = false, usage = "Database host port.", metaVar = "Integer")
     protected int db_port = 5432;
-    @Option(name = "-u", required = true, usage = "Database user.")
+    @Option(name = "-u", required = true, usage = "Database user.", metaVar = "String")
     protected String db_user;
-    @Option(name = "-p", required = true, usage = "Database password.")
+    @Option(name = "-p", required = true, usage = "Database password.", metaVar = "String")
     protected String db_password;
-    @Option(name = "-d", required = true, usage = "jpgAgent database.")
+    @Option(name = "-d", required = true, usage = "jpgAgent database.", metaVar = "String")
     protected String db_database;
-    @Option(name = "-t", required = false, usage = "Job poll interval (ms).")
+    @Option(name = "-t", required = false, usage = "Job poll interval (ms).", metaVar = "Integer")
     protected long job_poll_interval = 10000;
-    @Option(name = "-r", required = false, usage = "Connection retry interval (ms).")
+    @Option(name = "-r", required = false, usage = "Connection retry interval (ms).", metaVar = "Integer")
     protected long connection_retry_interval = 30000;
-    @Option(name = "-w", required = false, usage = "Size of the thread pool to execute tasks.  Each job and job step can take up to a thread in the pool at once.")
+    @Option(name = "-w", required = false, usage = "Size of the thread pool to execute tasks.  Each job and job step can take up to a thread in the pool at once.", metaVar = "Integer")
     protected int thread_pool_size = 40;
 }

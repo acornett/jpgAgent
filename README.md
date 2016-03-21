@@ -51,15 +51,28 @@ Definitions:
     
 
 ## Config options:
-     --port N : Database host port. (default: 5432)
-     -d VAL   : jpgAgent database.
-     -h VAL   : Database host address.
-     -p VAL   : Database password.
-     -r N     : Connection retry interval (ms). (default: 30000)
-     -t N     : Job poll interval (ms). (default: 10000)
-     -u VAL   : Database user.
-     -w N     : Size of the thread pool to execute tasks.  Each job and job step can take up to a thread in the pool at once.
+     --help         : Help (default: true)
+     --port Integer : Database host port. (default: 5432)
+     -d String      : jpgAgent database.
+     -h String      : Database host address.
+     -p String      : Database password.
+     -r Integer     : Connection retry interval (ms). (default: 30000)
+     -t Integer     : Job poll interval (ms). (default: 10000)
+     -u String      : Database user.
+     -w Integer     : Size of the thread pool to execute tasks.  Each job and job step can take up to a thread in the pool at once. (default: 40)
+     
+ ### Arguments file:
+You can create a file which contains your arguments, and pass that into the program instead.  This will protect the password from showing up in logs.
+The file can be created anywhere on your filesystem, and must contain the arguments in this format:
+
+        -d=postgres
+        -h=127.0.0.1
+        -u=test
+        -p=password
 
 Example run:
 
-        java -server -jar /path/to/jar/jpgAgent-1.0-SNAPSHOT-jar-with-dependencies.jar -h 127.0.0.1 -u test -p password -d postgres
+        java -server -jar /path/to/jar/jpgAgent-1.0-SNAPSHOT-jar-with-dependencies.jar -d postgres -h 127.0.0.1 -u test -p password 
+or        
+
+        java -server -jar /path/to/jar/jpgAgent-1.0-SNAPSHOT-jar-with-dependencies.jar @/usr/jpgagent/args

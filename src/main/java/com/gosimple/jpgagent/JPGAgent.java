@@ -287,6 +287,12 @@ public class JPGAgent
             return false;
         }
 
+        if(Config.INSTANCE.help)
+        {
+            parser.printUsage(System.out);
+            return false;
+        }
+
         try
         {
             Config.INSTANCE.hostname = InetAddress.getLocalHost().getCanonicalHostName();
