@@ -22,8 +22,6 @@
 
 package com.gosimple.jpgagent;
 
-import org.apache.commons.lang3.SystemUtils;
-
 import java.io.*;
 import java.sql.*;
 import java.util.Map;
@@ -71,11 +69,12 @@ public class JobStep implements CancellableRunnable
         this.connection_string = connection_string;
         this.database_name = database_name;
         this.on_error = on_error;
-        if (SystemUtils.IS_OS_WINDOWS)
+        String os_name = System.getProperty("os.name");
+        if (os_name.startsWith("Windows"))
         {
             os_type = OSType.WIN;
         }
-        else if (SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC)
+        else if (os_name.startsWith("LINUX") || os_name.startsWith("Linux") || os_name.startsWith("Mac"))
         {
             os_type = OSType.NIX;
         }
@@ -204,18 +203,40 @@ public class JobStep implements CancellableRunnable
                     this.running_process.waitFor();
 
 
-                    final BufferedReader buffered_reader = new BufferedReader(new InputStreamReader(this.running_process.getInputStream()));
+                    final BufferedReader buffered_reader_out = new BufferedReader(new InputStreamReader(this.running_process.getInputStream()));
+                    final BufferedReader buffered_reader_error = new BufferedReader(new InputStreamReader(this.running_process.getErrorStream()));
                     final StringBuilder string_builder = new StringBuilder();
                     String line;
-                    while ((line = buffered_reader.readLine()) != null)
+                    // Get normal output.
+                    while ((line = buffered_reader_out.readLine()) != null)
                     {
                         string_builder.append(line);
                         string_builder.append(System.getProperty("line.separator"));
                     }
+                    // Get error output.
+                    while ((line = buffered_reader_error.readLine()) != null)
+                    {
+                        string_builder.append(line);
+                        string_builder.append(System.getProperty("line.separator"));
+                    }
+
                     tmp_file_script.delete();
                     this.step_output = string_builder.toString();
-                    this.step_status = StepStatus.SUCCEED;
                     this.step_result = running_process.exitValue();
+                    switch (step_result)
+                    {
+                        case 0:
+                        {
+                            step_status = StepStatus.SUCCEED;
+                            break;
+                        }
+                        case 1:
+                        default:
+                        {
+                            step_status = StepStatus.FAIL;
+                            break;
+                        }
+                    }
                 }
                 catch (InterruptedException e)
                 {
