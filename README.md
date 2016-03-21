@@ -72,7 +72,7 @@ The file can be created anywhere on your filesystem, and must contain the argume
 
 Example run:
 
-        java -server -jar /path/to/jar/jpgAgent-1.0-SNAPSHOT-jar-with-dependencies.jar -d postgres -h 127.0.0.1 -u test -p password 
+        java -server -jar /path/to/jar/jpgAgent-1.0.1.jar -d postgres -h 127.0.0.1 -u test -p password 
 or        
 
-        java -server -jar /path/to/jar/jpgAgent-1.0-SNAPSHOT-jar-with-dependencies.jar @/usr/jpgagent/args
+        java -server -jar /path/to/jar/jpgAgent-1.0.1.jar @/usr/jpgagent/args
