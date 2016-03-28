@@ -70,7 +70,7 @@ The file can be created anywhere on your filesystem, and must contain the argume
         -u=test
         -p=password
 
-Example run:
+## Example run:
 
         java -server -jar /path/to/jar/jpgAgent-1.0.1.jar -d postgres -h 127.0.0.1 -u test -p password 
 or        
