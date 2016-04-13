@@ -7,7 +7,7 @@
     <groupId>com.gosimple</groupId>
     <artifactId>jpgAgent</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <name>jpgAgent</name>
     <build>
         <plugins>
@@ -37,9 +37,12 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
+                            <finalName>${name}</finalName>
                             <archive>
                                 <manifest>
                                     <mainClass>com.gosimple.jpgagent.JPGAgent</mainClass>
+                                    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                                    <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

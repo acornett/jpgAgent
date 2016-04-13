@@ -45,22 +45,30 @@ public class JPGAgent
 
     public static void main(String[] args)
     {
-        Config.INSTANCE.logger.info("jpgAgent starting.");
         boolean set_args = setArguments(args);
         if (!set_args)
         {
             System.exit(-1);
         }
+
+        Config.INSTANCE.logger.info("jpgAgent starting.");
+
         Database.INSTANCE.resetMainConnection();
 
+        // Enter main loop
         while (true)
         {
             try
             {
-                Config.INSTANCE.logger.debug("Check if connection is valid.");
+                Config.INSTANCE.logger.debug("Check if main connection is valid.");
                 if (Database.INSTANCE.getMainConnection() == null || !Database.INSTANCE.getMainConnection().isValid(1))
                 {
                     Database.INSTANCE.resetMainConnection();
+                }
+                Config.INSTANCE.logger.debug("Check if listener connection is valid.");
+                if (Database.INSTANCE.getListenerConnection() == null || !Database.INSTANCE.getListenerConnection().isValid(1))
+                {
+                    Database.INSTANCE.resetListenerConnection();
                 }
 
                 // Process all incoming notifications.
@@ -129,10 +137,6 @@ public class JPGAgent
                     }
                 }
             }
-        }
-        catch (Exception e)
-        {
-            Config.INSTANCE.logger.error(e.getMessage());
         }
     }
 
@@ -290,6 +294,12 @@ public class JPGAgent
         if(Config.INSTANCE.help)
         {
             parser.printUsage(System.out);
+            return false;
+        }
+
+        if(Config.INSTANCE.version)
+        {
+            System.out.println("jpgAgent version: " + JPGAgent.class.getPackage().getImplementationVersion());
             return false;
         }
 
