@@ -55,6 +55,10 @@ public class JobStep implements CancellableRunnable
     private Boolean run_in_parallel = false;
     // Timeout setting to abort job if running longer than this value.
     private Long job_step_timeout = null;
+    // Database login to use
+    private String database_login = null;
+    // Database password to use
+    private String database_password = null;
 
     public JobStep(final int job_log_id, final int job_id, final int step_id, final String step_name, final String step_description, final StepType step_type, final String code, final String connection_string, final String database_name, final OnError on_error)
     {
@@ -92,6 +96,14 @@ public class JobStep implements CancellableRunnable
             if(annotations.containsKey(JobStepAnnotations.JOB_STEP_TIMEOUT.name()))
             {
                 job_step_timeout = AnnotationUtil.parseValue(JobStepAnnotations.JOB_STEP_TIMEOUT, annotations.get(JobStepAnnotations.JOB_STEP_TIMEOUT.name()), Long.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.DATABASE_LOGIN.name()))
+            {
+                database_login = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_LOGIN, annotations.get(JobStepAnnotations.DATABASE_LOGIN.name()), String.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.DATABASE_PASSWORD.name()))
+            {
+                database_password = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_PASSWORD, annotations.get(JobStepAnnotations.DATABASE_PASSWORD.name()), String.class);
             }
         }
         catch (Exception e)
@@ -131,7 +143,9 @@ public class JobStep implements CancellableRunnable
             {
                 Config.INSTANCE.logger.debug("Executing SQL step: {}", step_id);
 
-                try (Connection connection = Database.INSTANCE.getConnection(database_name))
+                try (Connection connection = database_login == null || database_password == null ?
+                        Database.INSTANCE.getConnection(database_name) :
+                        Database.INSTANCE.getConnection(database_name, database_login, database_password))
                 {
                     try (Statement statement = connection.createStatement())
                     {
@@ -468,7 +482,9 @@ public class JobStep implements CancellableRunnable
     public enum JobStepAnnotations implements AnnotationDefinition
     {
         RUN_IN_PARALLEL(Boolean.class),
-        JOB_STEP_TIMEOUT(Long.class);
+        JOB_STEP_TIMEOUT(Long.class),
+        DATABASE_LOGIN(String.class),
+        DATABASE_PASSWORD(String.class);
 
         final Class<?> annotation_value_type;
 

@@ -38,6 +38,8 @@ Definitions:
     
     @JOB_STEP_TIMEOUT=5 s;
     @RUN_IN_PARALLEL=true;
+    @DATABASE_LOGIN=username;
+    @DATABASE_PASSWORD=securepass;
     
 Definitions:
 
@@ -47,6 +49,10 @@ Definitions:
     
     @JOB_STEP_TIMEOUT If the step takes longer than specified to complete, the step will abort leaving
     the rest of the job to finish normally.
+    
+    @DATABASE_LOGIN If specified, use this database login to connect instead of the connection info specified for jpgAdmin. Must be specified with @DATABASE_PASSWORD.
+    
+    @DATABASE_PASSWORD If specified, use this database password to connect instead of the connection info specified for jpgAdmin. Must be specified with @DATABASE_LOGIN.
    
     
 

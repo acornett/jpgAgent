@@ -159,4 +159,18 @@ public enum Database
 
         return data_source.getConnection();
     }
+
+    /**
+     * Returns a connection to the specified database with autocommit on.
+     *
+     * @param database
+     * @return
+     * @throws SQLException
+     */
+    public synchronized Connection getConnection(final String database, final String user, final String password) throws SQLException
+    {
+        data_source.setDatabaseName(database);
+
+        return data_source.getConnection(user, password);
+    }
 }
