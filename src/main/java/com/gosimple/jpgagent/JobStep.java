@@ -22,7 +22,10 @@
 
 package com.gosimple.jpgagent;
 
+import com.sun.javaws.exceptions.InvalidArgumentException;
+
 import java.io.*;
+import java.net.PasswordAuthentication;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +65,8 @@ public class JobStep implements CancellableRunnable
     private String database_login = null;
     // Database password to use
     private String database_password = null;
+    // Database auth query
+    private String database_auth_query = null;
     // List of status to send an email on
     private List<StepStatus> email_on = new ArrayList<>();
     // Email to list
@@ -111,11 +116,30 @@ public class JobStep implements CancellableRunnable
             }
             if(annotations.containsKey(JobStepAnnotations.DATABASE_LOGIN.name()))
             {
+                if(annotations.get(JobStepAnnotations.DATABASE_AUTH_QUERY.name()) != null)
+                {
+                    Config.INSTANCE.logger.error("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
+                    throw new Exception("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
+                }
                 database_login = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_LOGIN, annotations.get(JobStepAnnotations.DATABASE_LOGIN.name()), String.class);
             }
             if(annotations.containsKey(JobStepAnnotations.DATABASE_PASSWORD.name()))
             {
+                if(annotations.get(JobStepAnnotations.DATABASE_AUTH_QUERY.name()) != null)
+                {
+                    Config.INSTANCE.logger.error("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
+                    throw new Exception("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
+                }
                 database_password = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_PASSWORD, annotations.get(JobStepAnnotations.DATABASE_PASSWORD.name()), String.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.DATABASE_AUTH_QUERY.name()))
+            {
+                if(annotations.get(JobStepAnnotations.DATABASE_LOGIN.name()) != null || annotations.get(JobStepAnnotations.DATABASE_PASSWORD.name()) != null)
+                {
+                    Config.INSTANCE.logger.error("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
+                    throw new Exception("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
+                }
+                database_auth_query = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_AUTH_QUERY, annotations.get(JobStepAnnotations.DATABASE_AUTH_QUERY.name()), String.class);
             }
             if(annotations.containsKey(JobStepAnnotations.EMAIL_ON.name()))
             {
@@ -173,18 +197,53 @@ public class JobStep implements CancellableRunnable
             case SQL:
             {
                 Config.INSTANCE.logger.debug("Executing SQL step: {}", step_id);
-
-                try (Connection connection = database_login == null || database_password == null ?
-                        Database.INSTANCE.getConnection(database_name) :
-                        Database.INSTANCE.getConnection(database_name, database_login, database_password))
+                try
                 {
-                    try (Statement statement = connection.createStatement())
+                    List<DatabaseAuth> db_auth = new ArrayList<>();
+
+                    // If there is an db_auth query, run it and add all results to the db_auth list
+                    if (database_auth_query != null)
                     {
-                        this.running_statement = statement;
-                        statement.execute(code);
-                        this.running_statement = null;
-                        step_result = 1;
-                        step_status = StepStatus.SUCCEED;
+                        try (Connection connection = Database.INSTANCE.getConnection(database_name))
+                        {
+                            try (Statement statement = connection.createStatement())
+                            {
+                                this.running_statement = statement;
+                                try(ResultSet result = statement.executeQuery(database_auth_query))
+                                {
+                                    while(result.next())
+                                    {
+                                        db_auth.add(new DatabaseAuth(result.getString(1), result.getString(2)));
+                                    }
+                                }
+                                this.running_statement = null;
+                            }
+                        }
+                    }
+                    // If there were explicit credentials passed in, add them to the db_auth list.
+                    if(database_login != null || database_password != null)
+                    {
+                        db_auth.add(new DatabaseAuth(database_login, database_password));
+                    }
+                    // If nothing else was added to the auth list so far, add the configured jpgAgent credentials.
+                    if(db_auth.size() == 0)
+                    {
+                        db_auth.add(new DatabaseAuth(Config.INSTANCE.db_user, Config.INSTANCE.db_password));
+                    }
+
+                    for(DatabaseAuth auth : db_auth)
+                    {
+                        try (Connection connection = Database.INSTANCE.getConnection(database_name, auth.getUser(), auth.getPass()))
+                        {
+                            try (Statement statement = connection.createStatement())
+                            {
+                                this.running_statement = statement;
+                                statement.execute(code);
+                                this.running_statement = null;
+                                step_result = 1;
+                                step_status = StepStatus.SUCCEED;
+                            }
+                        }
                     }
                 }
                 catch (final Exception e)
@@ -426,6 +485,28 @@ public class JobStep implements CancellableRunnable
         return this.run_in_parallel;
     }
 
+    protected class DatabaseAuth
+    {
+        private final String user;
+        private final String pass;
+
+        public DatabaseAuth(final String user, final String pass)
+        {
+            this.user = user;
+            this.pass = pass;
+        }
+
+        public String getUser()
+        {
+            return user;
+        }
+
+        public String getPass()
+        {
+            return pass;
+        }
+    }
+
     protected enum StepType
     {
         SQL("s"),
@@ -532,6 +613,7 @@ public class JobStep implements CancellableRunnable
         JOB_STEP_TIMEOUT(Long.class),
         DATABASE_LOGIN(String.class),
         DATABASE_PASSWORD(String.class),
+        DATABASE_AUTH_QUERY(String.class),
         EMAIL_ON(String.class),
         EMAIL_SUBJECT(String.class),
         EMAIL_BODY(String.class),
