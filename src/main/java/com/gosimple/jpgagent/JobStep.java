@@ -24,6 +24,8 @@ package com.gosimple.jpgagent;
 
 import java.io.*;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class JobStep implements CancellableRunnable
@@ -34,6 +36,7 @@ public class JobStep implements CancellableRunnable
     private int step_result;
     private String step_output;
     private final int job_id;
+    private final String job_name;
     private final int step_id;
     private final String step_name;
     private final String step_description;
@@ -59,12 +62,21 @@ public class JobStep implements CancellableRunnable
     private String database_login = null;
     // Database password to use
     private String database_password = null;
+    // List of status to send an email on
+    private List<StepStatus> email_on = new ArrayList<>();
+    // Email to list
+    private String[] email_to = null;
+    // Email subject
+    private String email_subject = null;
+    // Email body
+    private String email_body = null;
 
-    public JobStep(final int job_log_id, final int job_id, final int step_id, final String step_name, final String step_description, final StepType step_type, final String code, final String connection_string, final String database_name, final OnError on_error)
+    public JobStep(final int job_log_id, final int job_id, final String job_name, final int step_id, final String step_name, final String step_description, final StepType step_type, final String code, final String connection_string, final String database_name, final OnError on_error)
     {
         Config.INSTANCE.logger.debug("JobStep instantiation begin.");
         this.job_log_id = job_log_id;
         this.job_id = job_id;
+        this.job_name = job_name;
         this.step_id = step_id;
         this.step_name = step_name;
         this.step_description = step_description;
@@ -105,10 +117,29 @@ public class JobStep implements CancellableRunnable
             {
                 database_password = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_PASSWORD, annotations.get(JobStepAnnotations.DATABASE_PASSWORD.name()), String.class);
             }
+            if(annotations.containsKey(JobStepAnnotations.EMAIL_ON.name()))
+            {
+                for(String email_on_string : AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_ON, annotations.get(JobStepAnnotations.EMAIL_ON.name()), String.class).split(";"))
+                {
+                    email_on.add(StepStatus.valueOf(email_on_string));
+                }
+            }
+            if(annotations.containsKey(JobStepAnnotations.EMAIL_TO.name()))
+            {
+                email_to = AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_TO, annotations.get(JobStepAnnotations.EMAIL_TO.name()), String.class).split(";");
+            }
+            if(annotations.containsKey(JobStepAnnotations.EMAIL_SUBJECT.name()))
+            {
+                email_subject = AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_SUBJECT, annotations.get(JobStepAnnotations.EMAIL_SUBJECT.name()), String.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.EMAIL_BODY.name()))
+            {
+                email_body = AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_BODY, annotations.get(JobStepAnnotations.EMAIL_BODY.name()), String.class);
+            }
         }
         catch (Exception e)
         {
-            Config.INSTANCE.logger.error("An issue with the annotations on job has stopped them from being processed.");
+            Config.INSTANCE.logger.error("An issue with the annotations on job_id/job_step_id: " + job_id + "/" + step_id + "  has stopped them from being processed.");
         }
         Config.INSTANCE.logger.debug("JobStep instantiation complete.");
     }
@@ -301,6 +332,22 @@ public class JobStep implements CancellableRunnable
         {
             Config.INSTANCE.logger.error(e.getMessage());
         }
+
+        if(email_on.contains(step_status))
+        {
+            // Token replacement
+            email_subject = email_subject.replaceAll(Config.INSTANCE.status_token, step_status.name());
+            email_body = email_body.replaceAll(Config.INSTANCE.status_token, step_status.name());
+
+            email_subject = email_subject.replaceAll(Config.INSTANCE.job_name_token, job_name);
+            email_body = email_body.replaceAll(Config.INSTANCE.job_name_token, job_name);
+
+            email_subject = email_subject.replaceAll(Config.INSTANCE.job_step_name_token, step_name);
+            email_body = email_body.replaceAll(Config.INSTANCE.job_step_name_token, step_name);
+
+            // Send email
+            EmailUtil.sendEmailFromNoReply(email_to, email_subject, email_body);
+        }
     }
 
     /**
@@ -484,7 +531,11 @@ public class JobStep implements CancellableRunnable
         RUN_IN_PARALLEL(Boolean.class),
         JOB_STEP_TIMEOUT(Long.class),
         DATABASE_LOGIN(String.class),
-        DATABASE_PASSWORD(String.class);
+        DATABASE_PASSWORD(String.class),
+        EMAIL_ON(String.class),
+        EMAIL_SUBJECT(String.class),
+        EMAIL_BODY(String.class),
+        EMAIL_TO(String.class);
 
         final Class<?> annotation_value_type;
 

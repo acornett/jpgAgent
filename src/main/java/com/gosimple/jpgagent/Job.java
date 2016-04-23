@@ -46,6 +46,15 @@ public class Job implements CancellableRunnable
      */
     // Timeout setting to abort job if running longer than this value.
     private Long job_timeout = null;
+    // List of status to send an email on
+    private List<JobStatus> email_on = new ArrayList<>();
+    // Email to list
+    private String[] email_to = null;
+    // Email subject
+    private String email_subject = null;
+    // Email body
+    private String email_body = null;
+
 
     public Job(final int job_id)
     {
@@ -85,10 +94,29 @@ public class Job implements CancellableRunnable
             {
                 job_timeout = AnnotationUtil.parseValue(JobAnnotations.JOB_TIMEOUT, annotations.get(JobAnnotations.JOB_TIMEOUT.name()), Long.class);
             }
+            if(annotations.containsKey(JobAnnotations.EMAIL_ON.name()))
+            {
+                for(String email_on_string : AnnotationUtil.parseValue(JobAnnotations.EMAIL_ON, annotations.get(JobAnnotations.EMAIL_ON.name()), String.class).split(";"))
+                {
+                    email_on.add(JobStatus.valueOf(email_on_string));
+                }
+            }
+            if(annotations.containsKey(JobAnnotations.EMAIL_TO.name()))
+            {
+                email_to = AnnotationUtil.parseValue(JobAnnotations.EMAIL_TO, annotations.get(JobAnnotations.EMAIL_TO.name()), String.class).split(";");
+            }
+            if(annotations.containsKey(JobAnnotations.EMAIL_SUBJECT.name()))
+            {
+                email_subject = AnnotationUtil.parseValue(JobAnnotations.EMAIL_SUBJECT, annotations.get(JobAnnotations.EMAIL_SUBJECT.name()), String.class);
+            }
+            if(annotations.containsKey(JobAnnotations.EMAIL_BODY.name()))
+            {
+                email_body = AnnotationUtil.parseValue(JobAnnotations.EMAIL_BODY, annotations.get(JobAnnotations.EMAIL_BODY.name()), String.class);
+            }
         }
         catch (Exception e)
         {
-            Config.INSTANCE.logger.error("An issue with the annotations on job has stopped them from being processed.");
+            Config.INSTANCE.logger.error("An issue with the annotations on job_id: " + job_id + " has stopped them from being processed.");
         }
 
         final String log_sql =
@@ -141,6 +169,7 @@ public class Job implements CancellableRunnable
                     JobStep job_step = new JobStep(
                             this.job_log_id,
                             resultSet.getInt("jstjobid"),
+                            this.job_name,
                             resultSet.getInt("jstid"),
                             resultSet.getString("jstname"),
                             resultSet.getString("jstdesc"),
@@ -236,6 +265,19 @@ public class Job implements CancellableRunnable
         catch (SQLException e)
         {
             Config.INSTANCE.logger.error(e.getMessage());
+        }
+
+        if(email_on.contains(job_status))
+        {
+            // Token replacement
+            email_subject = email_subject.replaceAll(Config.INSTANCE.status_token, job_status.name());
+            email_body = email_body.replaceAll(Config.INSTANCE.status_token, job_status.name());
+
+            email_subject = email_subject.replaceAll(Config.INSTANCE.job_name_token, job_name);
+            email_body = email_body.replaceAll(Config.INSTANCE.job_name_token, job_name);
+
+            // Send email
+            EmailUtil.sendEmailFromNoReply(email_to, email_subject, email_body);
         }
         Config.INSTANCE.logger.info("Job id: {} complete.", job_id);
     }
@@ -357,7 +399,11 @@ public class Job implements CancellableRunnable
 
     public enum JobAnnotations implements AnnotationDefinition
     {
-        JOB_TIMEOUT(Long.class);
+        JOB_TIMEOUT(Long.class),
+        EMAIL_ON(String.class),
+        EMAIL_SUBJECT(String.class),
+        EMAIL_BODY(String.class),
+        EMAIL_TO(String.class);
 
         final Class<?> annotation_value_type;
 

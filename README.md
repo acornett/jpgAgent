@@ -23,16 +23,34 @@ two at the job step level.
 
 Annotations are added in the job comment field, or job step description field, must be on their own line, and in the correct format.
 
-Annotations that take a time measurement support different suffixes for the value (ms, s, m, h).
+Annotations that take a time measurement support different suffixes for the value [ms, s, m, h].
+
+Annotations that take a JOB_STATUS support the values of: [RUNNING;FAIL;SUCCEED;ABORTED;IGNORE]
+
+Annotations that take a JOB_STEP_STATUS support the values of: [RUNNING;FAIL;SUCCEED;ABORTED;IGNORE]
+
+
 
 #### Job:
 
     @JOB_TIMEOUT=30 s;
+    @EMAIL_ON={JOB_STATUS}[;{JOB_STATUS}];
+    @EMAIL_TO=test@test.com;test2@example.com;
+    @EMAIL_SUBJECT=Important Subject;
+    @EMAIL_BODY=Job failure:<br>Job name - ~job_name~<br><br>You can even use HTML formatting.
 
 Definitions:
     
     @JOB_TIMEOUT If the job takes longer than specified to complete, the job will abort, and abort all 
     steps that have not completed yet. The steps that did complete are not affected.
+    
+    @EMAIL_ON Only send an email on this list of JOB_STATUS.
+    
+    @EMAIL_TO Email address('s) to send the message to.
+    
+    @EMAIL_SUBJECT The subject of the email to be sent. Can contain html formatting. Tokens available: ~status~, ~job_name~.
+    
+    @EMAIL_BODY The body of the email to be sent. Can contain html formatting. Tokens available: ~status~, ~job_name~.
     
 #### Job Step:
     
@@ -40,6 +58,10 @@ Definitions:
     @RUN_IN_PARALLEL=true;
     @DATABASE_LOGIN=username;
     @DATABASE_PASSWORD=securepass;
+    @EMAIL_ON={JOB_STEP_STATUS}[;{JOB_STEP_STATUS}];
+    @EMAIL_TO=test@test.com;test2@example.com;
+    @EMAIL_SUBJECT=Step: ~job_step_name~ ;
+    @EMAIL_BODY=Step status: ~status~ <br>Job name - ~job_name~
     
 Definitions:
 
@@ -53,20 +75,34 @@ Definitions:
     @DATABASE_LOGIN If specified, use this database login to connect instead of the connection info specified for jpgAdmin. Must be specified with @DATABASE_PASSWORD.
     
     @DATABASE_PASSWORD If specified, use this database password to connect instead of the connection info specified for jpgAdmin. Must be specified with @DATABASE_LOGIN.
+    
+    @EMAIL_ON Only send an email on this list of JOB_STEP_STATUS.
+    
+    @EMAIL_TO Email address('s) to send the message to.
+    
+    @EMAIL_SUBJECT The subject of the email to be sent. Can contain html formatting. Tokens available for use: ~status~, ~job_name~, ~job_step_name~.
+    
+    @EMAIL_BODY The body of the email to be sent. Can contain html formatting. Tokens available for use: ~status~, ~job_name~, ~job_step_name~.
    
     
 
 ## Config options:
-     --help         : Help (default: false)
-     --version      : Version (default: false)
-     --port Integer : Database host port. (default: 5432)
-     -d String      : jpgAgent database.
-     -h String      : Database host address.
-     -p String      : Database password.
-     -r Integer     : Connection retry interval (ms). (default: 30000)
-     -t Integer     : Job poll interval (ms). (default: 10000)
-     -u String      : Database user.
-     -w Integer     : Size of the thread pool to execute tasks.  Each job and job step can take up to a thread in the pool at once. (default: 40)
+      --help                 : Help (default: true)
+      --port Integer         : Database host port. (default: 5432)
+      --smtp-email String    : Email address used for smtp.
+      --smtp-host String     : Server address used for smtp.
+      --smtp-password String : Password used for smtp.
+      --smtp-port String     : Server Port used for smtp.
+      --smtp-ssl Boolean     : Is SSL enabled for the smtp connection. (default: true)
+      --smtp-user String     : User used for smtp.
+      --version              : Version (default: false)
+      -d String              : jpgAgent database.
+      -h String              : Database host address.
+      -p String              : Database password.
+      -r Integer             : Connection retry interval (ms). (default: 30000)
+      -t Integer             : Job poll interval (ms). (default: 10000)
+      -u String              : Database user.
+      -w Integer             : Size of the thread pool to execute tasks.  Each job and job step can take up to a thread in the pool at once. (default: 40)
      
 ### Arguments file:
 You can create a file which contains your arguments, and pass that into the program instead.  This will protect the password from showing up in logs.

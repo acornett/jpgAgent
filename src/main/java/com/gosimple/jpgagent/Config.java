@@ -35,6 +35,10 @@ public enum Config
     protected final Logger logger = LoggerFactory.getLogger("jpgAgent");
     // Host name for the system running jpgAgent.
     protected String hostname;
+    // Tokens for email replacement
+    protected String status_token = "~status~";
+    protected String job_name_token = "~job_name~";
+    protected String job_step_name_token = "~job_step_name~";
 
     @Option(name = "--help", help = true, required = false, usage = "Help")
     protected boolean help = false;
@@ -56,5 +60,18 @@ public enum Config
     protected long connection_retry_interval = 30000;
     @Option(name = "-w", required = false, usage = "Size of the thread pool to execute tasks.  Each job and job step can take up to a thread in the pool at once.", metaVar = "Integer")
     protected int thread_pool_size = 40;
+    @Option(name = "--smtp-host", required = false, usage = "Server address used for smtp.", metaVar = "String")
+    protected String smtp_host;
+    @Option(name = "--smtp-email", required = false, depends = {"--smtp-host"}, usage = "Email address used for smtp.", metaVar = "String")
+    protected String smtp_email;
+    @Option(name = "--smtp-port", required = false, depends = {"--smtp-host"}, usage = "Server Port used for smtp.", metaVar = "String")
+    protected String smtp_port;
+    @Option(name = "--smtp-user", required = false, depends = {"--smtp-host"}, usage = "User used for smtp.", metaVar = "String")
+    protected String smtp_user;
+    @Option(name = "--smtp-password", required = false, depends = {"--smtp-host", "--smtp-user"}, usage = "Password used for smtp.", metaVar = "String")
+    protected String smtp_password;
+    @Option(name = "--smtp-ssl", required = false, depends = {"--smtp-host"}, usage = "Is SSL enabled for the smtp connection.", metaVar = "Boolean")
+    protected Boolean smtp_ssl = true;
+
 
 }
