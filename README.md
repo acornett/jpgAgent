@@ -48,9 +48,11 @@ Definitions:
     
     @EMAIL_TO Email address('s) to send the message to.
     
-    @EMAIL_SUBJECT The subject of the email to be sent. Can contain html formatting. Tokens available: ~status~, ~job_name~.
+    @EMAIL_SUBJECT The subject of the email to be sent. Can contain html formatting.
+    Tokens available: ~status~, ~job_name~.
     
-    @EMAIL_BODY The body of the email to be sent. Can contain html formatting. Tokens available: ~status~, ~job_name~.
+    @EMAIL_BODY The body of the email to be sent. Can contain html formatting.
+    Tokens available: ~status~, ~job_name~.
     
 #### Job Step:
     
@@ -66,23 +68,27 @@ Definitions:
 Definitions:
 
     @RUN_IN_PARALLEL This annotation allows the step it's defined on to run in parallel with the 
-    previous step (regardless of the annotations on the previous step).  You can set up some somewhat intricate job 
-    flows with this.
+    previous step (regardless of the annotations on the previous step).  You can set up some somewhat 
+    intricate job flows with this.
     
     @JOB_STEP_TIMEOUT If the step takes longer than specified to complete, the step will abort leaving
     the rest of the job to finish normally.
     
-    @DATABASE_LOGIN If specified, use this database login to connect instead of the connection info specified for jpgAdmin. Must be specified with @DATABASE_PASSWORD.
+    @DATABASE_LOGIN If specified, use this database login to connect instead of the connection info
+    specified for jpgAdmin. Must be specified with @DATABASE_PASSWORD.
     
-    @DATABASE_PASSWORD If specified, use this database password to connect instead of the connection info specified for jpgAdmin. Must be specified with @DATABASE_LOGIN.
+    @DATABASE_PASSWORD If specified, use this database password to connect instead of the connection
+    info specified for jpgAdmin. Must be specified with @DATABASE_LOGIN.
     
     @EMAIL_ON Only send an email on this list of JOB_STEP_STATUS.
     
     @EMAIL_TO Email address('s) to send the message to.
     
-    @EMAIL_SUBJECT The subject of the email to be sent. Can contain html formatting. Tokens available for use: ~status~, ~job_name~, ~job_step_name~.
+    @EMAIL_SUBJECT The subject of the email to be sent. Can contain html formatting.
+    Tokens available for use: ~status~, ~job_name~, ~job_step_name~.
     
-    @EMAIL_BODY The body of the email to be sent. Can contain html formatting. Tokens available for use: ~status~, ~job_name~, ~job_step_name~.
+    @EMAIL_BODY The body of the email to be sent. Can contain html formatting.
+    Tokens available for use: ~status~, ~job_name~, ~job_step_name~.
    
     
 
