@@ -22,10 +22,8 @@
 
 package com.gosimple.jpgagent;
 
-import com.sun.javaws.exceptions.InvalidArgumentException;
 
 import java.io.*;
-import java.net.PasswordAuthentication;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;

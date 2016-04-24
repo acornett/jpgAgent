@@ -18,9 +18,7 @@ to use without extending the UI to support it.
     NOTIFY jpgagent_kill_job, 'job_id_here';
 
 ### Annotations
-Annotations can be added at the job, and job step level.  There is currently one supported at the job level, and 
-two at the job step level.
-
+Annotations can be added at the job, and job step level.
 Annotations are added in the job comment field, or job step description field, must be on their own line, and in the correct format.
 
 Annotations that take a time measurement support different suffixes for the value [ms, s, m, h].
