@@ -7,7 +7,7 @@
     <groupId>com.gosimple</groupId>
     <artifactId>jpgAgent</artifactId>
     <packaging>jar</packaging>
-    <version>1.1.2</version>
+    <version>1.1.1</version>
     <name>jpgAgent</name>
     <build>
         <plugins>
