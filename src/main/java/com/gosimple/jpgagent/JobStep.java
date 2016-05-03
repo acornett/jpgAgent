@@ -98,72 +98,7 @@ public class JobStep implements CancellableRunnable
             os_type = OSType.NIX;
         }
 
-        /*
-         Assign any values from annotations.
-          */
-        try
-        {
-            Map<String, String> annotations = AnnotationUtil.parseAnnotations(step_description);
-            if(annotations.containsKey(JobStepAnnotations.RUN_IN_PARALLEL.name()))
-            {
-                run_in_parallel = AnnotationUtil.parseValue(JobStepAnnotations.RUN_IN_PARALLEL, annotations.get(JobStepAnnotations.RUN_IN_PARALLEL.name()), Boolean.class);
-            }
-            if(annotations.containsKey(JobStepAnnotations.JOB_STEP_TIMEOUT.name()))
-            {
-                job_step_timeout = AnnotationUtil.parseValue(JobStepAnnotations.JOB_STEP_TIMEOUT, annotations.get(JobStepAnnotations.JOB_STEP_TIMEOUT.name()), Long.class);
-            }
-            if(annotations.containsKey(JobStepAnnotations.DATABASE_LOGIN.name()))
-            {
-                if(annotations.get(JobStepAnnotations.DATABASE_AUTH_QUERY.name()) != null)
-                {
-                    Config.INSTANCE.logger.error("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
-                    throw new Exception("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
-                }
-                database_login = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_LOGIN, annotations.get(JobStepAnnotations.DATABASE_LOGIN.name()), String.class);
-            }
-            if(annotations.containsKey(JobStepAnnotations.DATABASE_PASSWORD.name()))
-            {
-                if(annotations.get(JobStepAnnotations.DATABASE_AUTH_QUERY.name()) != null)
-                {
-                    Config.INSTANCE.logger.error("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
-                    throw new Exception("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
-                }
-                database_password = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_PASSWORD, annotations.get(JobStepAnnotations.DATABASE_PASSWORD.name()), String.class);
-            }
-            if(annotations.containsKey(JobStepAnnotations.DATABASE_AUTH_QUERY.name()))
-            {
-                if(annotations.get(JobStepAnnotations.DATABASE_LOGIN.name()) != null || annotations.get(JobStepAnnotations.DATABASE_PASSWORD.name()) != null)
-                {
-                    Config.INSTANCE.logger.error("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
-                    throw new Exception("DATABASE_AUTH_QUERY cannot be used with DATABASE_LOGIN or DATABASE_PASSWORD");
-                }
-                database_auth_query = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_AUTH_QUERY, annotations.get(JobStepAnnotations.DATABASE_AUTH_QUERY.name()), String.class);
-            }
-            if(annotations.containsKey(JobStepAnnotations.EMAIL_ON.name()))
-            {
-                for(String email_on_string : AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_ON, annotations.get(JobStepAnnotations.EMAIL_ON.name()), String.class).split(";"))
-                {
-                    email_on.add(StepStatus.valueOf(email_on_string));
-                }
-            }
-            if(annotations.containsKey(JobStepAnnotations.EMAIL_TO.name()))
-            {
-                email_to = AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_TO, annotations.get(JobStepAnnotations.EMAIL_TO.name()), String.class).split(";");
-            }
-            if(annotations.containsKey(JobStepAnnotations.EMAIL_SUBJECT.name()))
-            {
-                email_subject = AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_SUBJECT, annotations.get(JobStepAnnotations.EMAIL_SUBJECT.name()), String.class);
-            }
-            if(annotations.containsKey(JobStepAnnotations.EMAIL_BODY.name()))
-            {
-                email_body = AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_BODY, annotations.get(JobStepAnnotations.EMAIL_BODY.name()), String.class);
-            }
-        }
-        catch (Exception e)
-        {
-            Config.INSTANCE.logger.error("An issue with the annotations on job_id/job_step_id: " + job_id + "/" + step_id + "  has stopped them from being processed.");
-        }
-        Config.INSTANCE.logger.debug("JobStep instantiation complete.");
+        processAnnotations();
     }
 
     public void run()
@@ -405,6 +340,61 @@ public class JobStep implements CancellableRunnable
             // Send email
             EmailUtil.sendEmailFromNoReply(email_to, email_subject, email_body);
         }
+    }
+
+    /**
+     * Assign any values from annotations.
+     */
+    private void processAnnotations()
+    {
+        try
+        {
+            Map<String, String> annotations = AnnotationUtil.parseAnnotations(step_description);
+            if(annotations.containsKey(JobStepAnnotations.RUN_IN_PARALLEL.name()))
+            {
+                run_in_parallel = AnnotationUtil.parseValue(JobStepAnnotations.RUN_IN_PARALLEL, annotations.get(JobStepAnnotations.RUN_IN_PARALLEL.name()), Boolean.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.JOB_STEP_TIMEOUT.name()))
+            {
+                job_step_timeout = AnnotationUtil.parseValue(JobStepAnnotations.JOB_STEP_TIMEOUT, annotations.get(JobStepAnnotations.JOB_STEP_TIMEOUT.name()), Long.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.DATABASE_LOGIN.name()))
+            {
+                database_login = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_LOGIN, annotations.get(JobStepAnnotations.DATABASE_LOGIN.name()), String.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.DATABASE_PASSWORD.name()))
+            {
+                database_password = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_PASSWORD, annotations.get(JobStepAnnotations.DATABASE_PASSWORD.name()), String.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.DATABASE_AUTH_QUERY.name()))
+            {
+                database_auth_query = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_AUTH_QUERY, annotations.get(JobStepAnnotations.DATABASE_AUTH_QUERY.name()), String.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.EMAIL_ON.name()))
+            {
+                for(String email_on_string : AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_ON, annotations.get(JobStepAnnotations.EMAIL_ON.name()), String.class).split(";"))
+                {
+                    email_on.add(StepStatus.valueOf(email_on_string));
+                }
+            }
+            if(annotations.containsKey(JobStepAnnotations.EMAIL_TO.name()))
+            {
+                email_to = AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_TO, annotations.get(JobStepAnnotations.EMAIL_TO.name()), String.class).split(";");
+            }
+            if(annotations.containsKey(JobStepAnnotations.EMAIL_SUBJECT.name()))
+            {
+                email_subject = AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_SUBJECT, annotations.get(JobStepAnnotations.EMAIL_SUBJECT.name()), String.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.EMAIL_BODY.name()))
+            {
+                email_body = AnnotationUtil.parseValue(JobStepAnnotations.EMAIL_BODY, annotations.get(JobStepAnnotations.EMAIL_BODY.name()), String.class);
+            }
+        }
+        catch (Exception e)
+        {
+            Config.INSTANCE.logger.error("An issue with the annotations on job_id/job_step_id: " + job_id + "/" + step_id + "  has stopped them from being processed.");
+        }
+        Config.INSTANCE.logger.debug("JobStep instantiation complete.");
     }
 
     /**

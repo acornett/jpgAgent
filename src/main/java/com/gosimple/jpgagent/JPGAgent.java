@@ -75,11 +75,7 @@ public class JPGAgent
                 processNotifications();
 
                 // Run cleanup of zombie jobs.
-                if(run_cleanup)
-                {
-                    cleanup();
-                    run_cleanup = false;
-                }
+                cleanup();
 
                 // Actually run new jobs.
                 runJobs();
@@ -90,7 +86,8 @@ public class JPGAgent
             catch (final Exception e)
             {
                 // If it fails, sleep and try and restart the loop
-                Config.INSTANCE.logger.error("Connection has been lost.");
+                Config.INSTANCE.logger.error("Error encountered in the main loop.");
+                Config.INSTANCE.logger.error(e.getMessage());
                 run_cleanup = true;
                 try
                 {
@@ -142,12 +139,18 @@ public class JPGAgent
 
     /**
      * Does cleanup and initializes jpgAgent to start running jobs again.
-     * Returns true if successful, false if an error was encountered.
+     * Only runs if run_cleanup is true.
      *
      * @return
      */
     private static void cleanup() throws Exception
     {
+        if(!run_cleanup)
+        {
+            Config.INSTANCE.logger.debug("Cleanup unnecessary.");
+            return;
+        }
+
         Config.INSTANCE.logger.debug("Running cleanup to clear old data and re-initialize to start processing.");
 
         final String cleanup_sql =
@@ -233,6 +236,9 @@ public class JPGAgent
             job_future_map.remove(job_id);
         }
         job_ids_to_remove.clear();
+
+        // Set the flag to run the cleanup process to false so this won't run again unless needed
+        run_cleanup = false;
 
         Config.INSTANCE.logger.debug("Successfully cleaned up.");
     }

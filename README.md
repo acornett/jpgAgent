@@ -75,16 +75,13 @@ Definitions:
     
     @DATABASE_LOGIN If specified, use this database login to connect instead of the connection info
     specified for jpgAdmin. Must be specified with @DATABASE_PASSWORD.
-    Cannot be specified with @DATABASE_AUTH_QUERY.
     
     @DATABASE_PASSWORD If specified, use this database password to connect instead of the connection
     info specified for jpgAdmin. Must be specified with @DATABASE_LOGIN.
-    Cannot be specified with @DATABASE_AUTH_QUERY.
     
     @DATABASE_AUTH_QUERY If specified, use this query to run the job step for each set of credentials returned.  
     This will start a new transaction for each credential returned.  The query must return two columns, the 
     first being user, the second being password.
-    Cannot be specified with @DATABASE_LOGIN and @DATABASE_PASSWORD.
     
     @EMAIL_ON Only send an email on this list of JOB_STEP_STATUS.
     

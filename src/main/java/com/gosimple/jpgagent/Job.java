@@ -84,40 +84,7 @@ public class Job implements CancellableRunnable
             Config.INSTANCE.logger.error(e.getMessage());
         }
 
-        /*
-         Assign any values from annotations.
-          */
-        try
-        {
-            Map<String, String> annotations = AnnotationUtil.parseAnnotations(job_comment);
-            if(annotations.containsKey(JobAnnotations.JOB_TIMEOUT.name()))
-            {
-                job_timeout = AnnotationUtil.parseValue(JobAnnotations.JOB_TIMEOUT, annotations.get(JobAnnotations.JOB_TIMEOUT.name()), Long.class);
-            }
-            if(annotations.containsKey(JobAnnotations.EMAIL_ON.name()))
-            {
-                for(String email_on_string : AnnotationUtil.parseValue(JobAnnotations.EMAIL_ON, annotations.get(JobAnnotations.EMAIL_ON.name()), String.class).split(";"))
-                {
-                    email_on.add(JobStatus.valueOf(email_on_string));
-                }
-            }
-            if(annotations.containsKey(JobAnnotations.EMAIL_TO.name()))
-            {
-                email_to = AnnotationUtil.parseValue(JobAnnotations.EMAIL_TO, annotations.get(JobAnnotations.EMAIL_TO.name()), String.class).split(";");
-            }
-            if(annotations.containsKey(JobAnnotations.EMAIL_SUBJECT.name()))
-            {
-                email_subject = AnnotationUtil.parseValue(JobAnnotations.EMAIL_SUBJECT, annotations.get(JobAnnotations.EMAIL_SUBJECT.name()), String.class);
-            }
-            if(annotations.containsKey(JobAnnotations.EMAIL_BODY.name()))
-            {
-                email_body = AnnotationUtil.parseValue(JobAnnotations.EMAIL_BODY, annotations.get(JobAnnotations.EMAIL_BODY.name()), String.class);
-            }
-        }
-        catch (Exception e)
-        {
-            Config.INSTANCE.logger.error("An issue with the annotations on job_id: " + job_id + " has stopped them from being processed.");
-        }
+        processAnnotations();
 
         final String log_sql =
                 "INSERT INTO pgagent.pga_joblog(jlgjobid, jlgstatus) " +
@@ -142,52 +109,7 @@ public class Job implements CancellableRunnable
             Config.INSTANCE.logger.error(e.getMessage());
         }
 
-        final String step_sql =
-                "SELECT jstid " +
-                        ", jstjobid " +
-                        ", jstname " +
-                        ", jstdesc " +
-                        ", jstkind " +
-                        ", jstcode " +
-                        ", jstconnstr " +
-                        ", jstdbname " +
-                        ", jstonerror " +
-                        "FROM pgagent.pga_jobstep " +
-                        "WHERE jstenabled " +
-                        "AND jstjobid=? " +
-                        "ORDER BY jstname, jstid";
-
-        Config.INSTANCE.logger.debug("Building steps.");
-        try (final PreparedStatement statement = Database.INSTANCE.getMainConnection().prepareStatement(step_sql))
-        {
-            statement.setInt(1, job_id);
-
-            try (final ResultSet resultSet = statement.executeQuery())
-            {
-                while (resultSet.next())
-                {
-                    JobStep job_step = new JobStep(
-                            this.job_log_id,
-                            resultSet.getInt("jstjobid"),
-                            this.job_name,
-                            resultSet.getInt("jstid"),
-                            resultSet.getString("jstname"),
-                            resultSet.getString("jstdesc"),
-                            JobStep.StepType.convertTo(resultSet.getString("jstkind")),
-                            resultSet.getString("jstcode"),
-                            resultSet.getString("jstconnstr"),
-                            resultSet.getString("jstdbname"),
-                            JobStep.OnError.convertTo(resultSet.getString("jstonerror"))
-                    );
-                    job_step_list.add(job_step);
-                }
-            }
-        }
-        catch (final SQLException e)
-        {
-            Config.INSTANCE.logger.error("An error occurred getting job steps.");
-            Config.INSTANCE.logger.error(e.getMessage());
-        }
+        buildSteps();
         Config.INSTANCE.logger.debug("Job instantiation complete.");
     }
 
@@ -280,6 +202,96 @@ public class Job implements CancellableRunnable
             EmailUtil.sendEmailFromNoReply(email_to, email_subject, email_body);
         }
         Config.INSTANCE.logger.info("Job id: {} complete.", job_id);
+    }
+
+    /**
+     * Build steps.
+     */
+    private void buildSteps()
+    {
+        Config.INSTANCE.logger.debug("Building steps.");
+        final String step_sql =
+                "SELECT jstid " +
+                ", jstjobid " +
+                ", jstname " +
+                ", jstdesc " +
+                ", jstkind " +
+                ", jstcode " +
+                ", jstconnstr " +
+                ", jstdbname " +
+                ", jstonerror " +
+                "FROM pgagent.pga_jobstep " +
+                "WHERE jstenabled " +
+                "AND jstjobid=? " +
+                "ORDER BY jstname, jstid";
+        try (final PreparedStatement statement = Database.INSTANCE.getMainConnection().prepareStatement(step_sql))
+        {
+            statement.setInt(1, job_id);
+
+            try (final ResultSet resultSet = statement.executeQuery())
+            {
+                while (resultSet.next())
+                {
+                    JobStep job_step = new JobStep(
+                            this.job_log_id,
+                            resultSet.getInt("jstjobid"),
+                            this.job_name,
+                            resultSet.getInt("jstid"),
+                            resultSet.getString("jstname"),
+                            resultSet.getString("jstdesc"),
+                            JobStep.StepType.convertTo(resultSet.getString("jstkind")),
+                            resultSet.getString("jstcode"),
+                            resultSet.getString("jstconnstr"),
+                            resultSet.getString("jstdbname"),
+                            JobStep.OnError.convertTo(resultSet.getString("jstonerror"))
+                    );
+                    job_step_list.add(job_step);
+                }
+            }
+        }
+        catch (final SQLException e)
+        {
+            Config.INSTANCE.logger.error("An error occurred getting job steps.");
+            Config.INSTANCE.logger.error(e.getMessage());
+        }
+    }
+
+    /**
+     * Assign any values from annotations.
+     */
+    private void processAnnotations()
+    {
+        try
+        {
+            Map<String, String> annotations = AnnotationUtil.parseAnnotations(job_comment);
+            if (annotations.containsKey(JobAnnotations.JOB_TIMEOUT.name()))
+            {
+                job_timeout = AnnotationUtil.parseValue(JobAnnotations.JOB_TIMEOUT, annotations.get(JobAnnotations.JOB_TIMEOUT.name()), Long.class);
+            }
+            if (annotations.containsKey(JobAnnotations.EMAIL_ON.name()))
+            {
+                for (String email_on_string : AnnotationUtil.parseValue(JobAnnotations.EMAIL_ON, annotations.get(JobAnnotations.EMAIL_ON.name()), String.class).split(";"))
+                {
+                    email_on.add(JobStatus.valueOf(email_on_string));
+                }
+            }
+            if (annotations.containsKey(JobAnnotations.EMAIL_TO.name()))
+            {
+                email_to = AnnotationUtil.parseValue(JobAnnotations.EMAIL_TO, annotations.get(JobAnnotations.EMAIL_TO.name()), String.class).split(";");
+            }
+            if (annotations.containsKey(JobAnnotations.EMAIL_SUBJECT.name()))
+            {
+                email_subject = AnnotationUtil.parseValue(JobAnnotations.EMAIL_SUBJECT, annotations.get(JobAnnotations.EMAIL_SUBJECT.name()), String.class);
+            }
+            if (annotations.containsKey(JobAnnotations.EMAIL_BODY.name()))
+            {
+                email_body = AnnotationUtil.parseValue(JobAnnotations.EMAIL_BODY, annotations.get(JobAnnotations.EMAIL_BODY.name()), String.class);
+            }
+        }
+        catch (Exception e)
+        {
+            Config.INSTANCE.logger.error("An issue with the annotations on job_id: " + job_id + " has stopped them from being processed.");
+        }
     }
 
     /**
