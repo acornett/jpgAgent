@@ -43,10 +43,10 @@ public class JobStep implements CancellableRunnable
     private final String step_description;
     private final StepType step_type;
     private String code;
-    private final String connection_string;
-    private final String database_name;
+    private String db_name;
     private final OnError on_error;
     private OSType os_type;
+    private final String connection_string;
 
     private Statement running_statement;
     private Process running_process;
@@ -59,6 +59,10 @@ public class JobStep implements CancellableRunnable
     private Boolean run_in_parallel = false;
     // Timeout setting to abort job if running longer than this value.
     private Long job_step_timeout = null;
+    // Database name
+    private String database_name = null;
+    // Database host
+    private String database_host = null;
     // Database login to use
     private String database_login = null;
     // Database password to use
@@ -74,7 +78,7 @@ public class JobStep implements CancellableRunnable
     // Email body
     private String email_body = null;
 
-    public JobStep(final int job_log_id, final int job_id, final String job_name, final int step_id, final String step_name, final String step_description, final StepType step_type, final String code, final String connection_string, final String database_name, final OnError on_error)
+    public JobStep(final int job_log_id, final int job_id, final String job_name, final int step_id, final String step_name, final String step_description, final StepType step_type, final String code, final String connection_string, final String db_name, final OnError on_error)
     {
         Config.INSTANCE.logger.debug("JobStep instantiation begin.");
         this.job_log_id = job_log_id;
@@ -86,7 +90,7 @@ public class JobStep implements CancellableRunnable
         this.step_type = step_type;
         this.code = code;
         this.connection_string = connection_string;
-        this.database_name = database_name;
+        this.db_name = db_name;
         this.on_error = on_error;
         String os_name = System.getProperty("os.name");
         if (os_name.startsWith("Windows"))
@@ -132,12 +136,18 @@ public class JobStep implements CancellableRunnable
                 Config.INSTANCE.logger.debug("Executing SQL step: {}", step_id);
                 try
                 {
+                    // Throw error if attempting to run a job step with "remote" instead of "local"
+                    if(connection_string != null && !connection_string.isEmpty())
+                    {
+                        throw new IllegalArgumentException("Remote connection types are not supported by jpgAgent. Please configure your job step to use annotations for remote connections.");
+                    }
+
                     List<DatabaseAuth> db_auth = new ArrayList<>();
 
                     // If there is an db_auth query, run it and add all results to the db_auth list
                     if (database_auth_query != null)
                     {
-                        try (Connection connection = Database.INSTANCE.getConnection(database_name))
+                        try (Connection connection = Database.INSTANCE.getConnection(getHost(), getDatabase()))
                         {
                             try (Statement statement = connection.createStatement())
                             {
@@ -166,7 +176,7 @@ public class JobStep implements CancellableRunnable
 
                     for(DatabaseAuth auth : db_auth)
                     {
-                        try (Connection connection = Database.INSTANCE.getConnection(database_name, auth.getUser(), auth.getPass()))
+                        try (Connection connection = Database.INSTANCE.getConnection(getHost(), getDatabase(), auth.getUser(), auth.getPass()))
                         {
                             try (Statement statement = connection.createStatement())
                             {
@@ -358,6 +368,14 @@ public class JobStep implements CancellableRunnable
             {
                 job_step_timeout = AnnotationUtil.parseValue(JobStepAnnotations.JOB_STEP_TIMEOUT, annotations.get(JobStepAnnotations.JOB_STEP_TIMEOUT.name()), Long.class);
             }
+            if(annotations.containsKey(JobStepAnnotations.DATABASE_NAME.name()))
+            {
+                db_name = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_NAME, annotations.get(JobStepAnnotations.DATABASE_NAME.name()), String.class);
+            }
+            if(annotations.containsKey(JobStepAnnotations.DATABASE_HOST.name()))
+            {
+                database_host = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_HOST, annotations.get(JobStepAnnotations.DATABASE_HOST.name()), String.class);
+            }
             if(annotations.containsKey(JobStepAnnotations.DATABASE_LOGIN.name()))
             {
                 database_login = AnnotationUtil.parseValue(JobStepAnnotations.DATABASE_LOGIN, annotations.get(JobStepAnnotations.DATABASE_LOGIN.name()), String.class);
@@ -395,6 +413,30 @@ public class JobStep implements CancellableRunnable
             Config.INSTANCE.logger.error("An issue with the annotations on job_id/job_step_id: " + job_id + "/" + step_id + "  has stopped them from being processed.");
         }
         Config.INSTANCE.logger.debug("JobStep instantiation complete.");
+    }
+
+    private String getHost()
+    {
+        if(database_host != null)
+        {
+            return database_host;
+        }
+        else
+        {
+            return Config.INSTANCE.db_host;
+        }
+    }
+
+    private String getDatabase()
+    {
+        if(database_name != null)
+        {
+            return database_name;
+        }
+        else
+        {
+            return db_name;
+        }
     }
 
     /**
@@ -599,6 +641,8 @@ public class JobStep implements CancellableRunnable
     {
         RUN_IN_PARALLEL(Boolean.class),
         JOB_STEP_TIMEOUT(Long.class),
+        DATABASE_NAME(String.class),
+        DATABASE_HOST(String.class),
         DATABASE_LOGIN(String.class),
         DATABASE_PASSWORD(String.class),
         DATABASE_AUTH_QUERY(String.class),

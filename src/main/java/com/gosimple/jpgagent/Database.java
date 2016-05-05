@@ -75,7 +75,7 @@ public enum Database
             {
                 main_connection.close();
             }
-            main_connection = Database.INSTANCE.getConnection(Config.INSTANCE.db_database);
+            main_connection = Database.INSTANCE.getConnection(Config.INSTANCE.db_host, Config.INSTANCE.db_database);
 
             String pid_sql = "SELECT pg_backend_pid();";
             try (Statement statement = main_connection.createStatement())
@@ -121,7 +121,7 @@ public enum Database
             {
                 listener_connection.close();
             }
-            listener_connection = Database.INSTANCE.getConnection(Config.INSTANCE.db_database);
+            listener_connection = Database.INSTANCE.getConnection(Config.INSTANCE.db_host, Config.INSTANCE.db_database);
 
             String listen_sql = "LISTEN jpgagent_kill_job;";
             try (Statement statement = listener_connection.createStatement())
@@ -149,13 +149,15 @@ public enum Database
     /**
      * Returns a connection to the specified database with autocommit on.
      *
+     * @param host_name
      * @param database
      * @return
      * @throws SQLException
      */
-    public synchronized Connection getConnection(final String database) throws SQLException
+    public synchronized Connection getConnection(final String host_name, final String database) throws SQLException
     {
         data_source.setDatabaseName(database);
+        data_source.setServerName(host_name);
 
         return data_source.getConnection();
     }
@@ -163,13 +165,17 @@ public enum Database
     /**
      * Returns a connection to the specified database with autocommit on.
      *
+     * @param host_name
      * @param database
+     * @param user
+     * @param password
      * @return
      * @throws SQLException
      */
-    public synchronized Connection getConnection(final String database, final String user, final String password) throws SQLException
+    public synchronized Connection getConnection(final String host_name, final String database, final String user, final String password) throws SQLException
     {
         data_source.setDatabaseName(database);
+        data_source.setServerName(host_name);
 
         return data_source.getConnection(user, password);
     }

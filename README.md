@@ -56,6 +56,8 @@ Definitions:
     
     @JOB_STEP_TIMEOUT=5 s;
     @RUN_IN_PARALLEL=true;
+    @DATABASE_HOST=192.168.1.105;
+    @DATABASE_NAME=data_warehouse;
     @DATABASE_LOGIN=username;
     @DATABASE_PASSWORD=securepass;
     @DATABASE_AUTH_QUERY=SELECT user, pass FROM auth_table WHERE active;
@@ -73,11 +75,19 @@ Definitions:
     @JOB_STEP_TIMEOUT If the step takes longer than specified to complete, the step will abort leaving
     the rest of the job to finish normally.
     
+    @DATABASE_HOST If specified, use this database host name to connect instead of the connection info
+    specified for jpgAdmin.
+    
+    @DATABASE_NAME If specified, use this database name to connect instead of the database selected 
+    in the job step.  This can be used when the host you are trying to run the job step on has
+    a database that is not the server that the PGAgent database is on (the UI only allows you to
+    pick from a predefined list).
+    
     @DATABASE_LOGIN If specified, use this database login to connect instead of the connection info
-    specified for jpgAdmin. Must be specified with @DATABASE_PASSWORD.
+    specified for jpgAdmin.
     
     @DATABASE_PASSWORD If specified, use this database password to connect instead of the connection
-    info specified for jpgAdmin. Must be specified with @DATABASE_LOGIN.
+    info specified for jpgAdmin.
     
     @DATABASE_AUTH_QUERY If specified, use this query to run the job step for each set of credentials returned.  
     This will start a new transaction for each credential returned.  The query must return two columns, the 
@@ -128,3 +138,10 @@ The file can be created anywhere on your filesystem, and must contain the argume
 or        
 
         java -server -jar /path/to/jar/jpgAgent.jar @/usr/jpgagent/args
+        
+## Special considerations
+The remote connection parameter in the job step configuration is not supported, we instead use annotations to allow connections to remote servers.  Reasoning for this 
+is due to the extended functionality of our annotations, the single connection string for a remote server was too limiting.
+
+If the database you are trying to connect to is not on the database server jpgAgent is configured for, you can pick any database in the list (usually the maintenance db)
+and configure the one you actually want to connect to in an annotation.
