@@ -13,6 +13,7 @@
 	<url>https://github.com/acornett/jpgAgent</url>
     <licenses>
     	<license>
+    		<name>MIT license</name>
     		<url>http://www.spdx.org/licenses/MIT</url>
     	</license>
     </licenses>
