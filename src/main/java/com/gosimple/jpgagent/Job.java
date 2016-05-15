@@ -39,7 +39,7 @@ public class Job implements CancellableRunnable
     private String job_comment;
     private JobStatus job_status;
     final List<JobStep> job_step_list = new ArrayList<>();
-    private final Map<JobStep, Future> future_map = new HashMap<>();
+    private final Map<JobStep, Future<?>> future_map = new HashMap<>();
     private Long start_time;
     /*
      * Annotation settings
@@ -319,7 +319,7 @@ public class Job implements CancellableRunnable
     private boolean submittedJobStepsRunning()
     {
         boolean jobsteps_running = false;
-        for (Future future : future_map.values())
+        for (Future<?> future : future_map.values())
         {
             if (!future.isDone())
             {
@@ -337,7 +337,7 @@ public class Job implements CancellableRunnable
     {
         for (JobStep job_step : future_map.keySet())
         {
-            final Future future = future_map.get(job_step);
+            final Future<?> future = future_map.get(job_step);
             if(job_step.isTimedOut() && !future.isDone())
             {
                 future.cancel(true);
@@ -367,7 +367,7 @@ public class Job implements CancellableRunnable
     @Override
     public void cancelTask()
     {
-        for (Future future : future_map.values())
+        for (Future<?> future : future_map.values())
         {
             if (!future.isDone())
             {
@@ -419,7 +419,7 @@ public class Job implements CancellableRunnable
 
         final Class<?> annotation_value_type;
 
-        private JobAnnotations(final Class annotation_value_type)
+        private JobAnnotations(final Class<?> annotation_value_type)
         {
             this.annotation_value_type = annotation_value_type;
         }
