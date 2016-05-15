@@ -9,6 +9,21 @@
     <packaging>jar</packaging>
     <version>1.2.0</version>
     <name>jpgAgent</name>
+    <description>jpgAgent is a job scheduler for PostgreSQL written in Java. It is low overhead, and aims to be fully compatible with pgAgent.</description>
+	<url>https://github.com/acornett/jpgAgent</url>
+    <licenses>
+    	<license>
+    		<url>http://www.spdx.org/licenses/MIT</url>
+    	</license>
+    </licenses>
+    <scm>
+        <url>https://github.com/acornett/jpgAgent</url>
+        <connection>scm:git:git://github.com/acornett/jpgAgent.git</connection>
+        <developerConnection>scm:git:git@github.com:acornett/jpgAgent.git</developerConnection>
+    </scm>
+    <properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
     <build>
         <plugins>
             <plugin>
